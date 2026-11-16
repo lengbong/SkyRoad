@@ -31,6 +31,7 @@ import { DaySchedule } from './DaySchedule';
 import { ArrivalTimeline, FleetIcon, HoursBar, SpecBars, toneOfUse, type FleetIconKind } from './FleetArt';
 import { FinIcon, ProgressRing } from './FinanceArt';
 import { PlaneImage } from './PlaneImage';
+import { RideView } from './RideView';
 import { FreighterShop } from './FreighterShop';
 import { bizModelOf } from './bizmodel';
 import { availableFreighters } from './freighters';
@@ -64,6 +65,7 @@ export function FleetView({ state, viewer, canAct, perform, apply, onEditRoute, 
   const [size, setSize] = useState<SizeClass | 'all' | 'cargo'>(bizModelOf(me) === 'cargo' ? 'cargo' : 'all');
   const [cabinFor, setCabinFor] = useState<number | null>(null);
   const [renewFor, setRenewFor] = useState<number | null>(null);
+  const [rideFor, setRideFor] = useState<number | null>(null);
   const [filter, setFilter] = useState<PlaneFilter>('all');
   const [sort, setSort] = useState<PlaneSort>('base');
   const year = yearOf(state.q);
@@ -107,6 +109,7 @@ export function FleetView({ state, viewer, canAct, perform, apply, onEditRoute, 
 
   return (
     <div className="al-fleet">
+      {rideFor !== null && <RideView state={state} company={viewer} plane={rideFor} onClose={() => setRideFor(null)} />}
       <div className="al-subtabs" role="tablist">
         <button type="button" role="tab" aria-selected={tab === 'hangar'} className={`al-subtab${tab === 'hangar' ? ' al-on' : ''}`} onClick={() => setTab('hangar')}>
           <FleetIcon kind="plane" size={16} /> 내 비행기 {me.planes.length}대{me.orders.length > 0 && ` · 주문 ${me.orders.length}`}
@@ -390,6 +393,11 @@ export function FleetView({ state, viewer, canAct, perform, apply, onEditRoute, 
                     )}
                   </div>
                   <div className="al-pl-act">
+                    {p.legs.length > 0 && p.check !== state.t && (
+                      <button type="button" className="btn btn-small al-ride-open" onClick={() => setRideFor(p.id)} title="이 비행기에 타서 3D로 따라가 봐요" data-testid={`al-ride-open-${p.id}`}>
+                        ✈️ 타 보기
+                      </button>
+                    )}
                     {canRenew && (
                       <button
                         type="button"

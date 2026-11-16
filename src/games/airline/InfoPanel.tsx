@@ -6,6 +6,7 @@ import { FacilityRow } from './FacilityCard';
 import { allianceOf, alliesOf } from './alliances';
 import { LandmarkIcon } from './Art';
 import { AirportCard, AirportModal } from './AirportView';
+import { RideView } from './RideView';
 import { SEASON_NAMES, WEATHER_INFO, leisureMonthMult, weather } from './calendar';
 import { AIRPORT_INFO, CITIES, CITY, FEE_INFO, REGION_INFO, airportClass, citySize, dist, pairKey } from './cities';
 import { FIXED_EVENTS, FIXED_ICON } from './events';
@@ -363,6 +364,7 @@ function CityPanel({ state, viewer, canAct, perform, onPlanRoute, onSelect, city
 // ------------------------------------------------------------------ 노선
 
 function RoutePanel({ state, viewer, canAct, onEditRoute, onPlanRoute, onSelect, company, route }: Common & { company: number; route: number }) {
+  const [ride, setRide] = useState(false);
   const owner = state.companies[company];
   const r = owner?.routes.find((x) => x.id === route);
   if (!owner || !r) return <Overview {...{ state, viewer, canAct, perform: () => {}, setState: () => {}, onPlanRoute, onEditRoute, onSelect, onOpenChoice: () => {} }} />;
@@ -374,8 +376,15 @@ function RoutePanel({ state, viewer, canAct, onEditRoute, onPlanRoute, onSelect,
   const d = dist(r.a, r.b);
   const dem = pairDemand(state, r.a, r.b);
   const mine = ops.find((x) => x.i === viewer);
+  // 타 볼 비행기: 내 비행기가 있으면 내 것, 없으면 이 노선을 가장 많이 나는 회사의 것
+  const rideOps = ops
+    .map((o) => ({ ...o, planes: planesOnRoute(o.co, o.rt!.id).filter((p) => p.check !== state.t) }))
+    .filter((o) => o.planes.length > 0)
+    .sort((a, b) => Number(b.i === viewer) - Number(a.i === viewer) || (b.rt!.stats?.share ?? 0) - (a.rt!.stats?.share ?? 0));
+  const rideOp = rideOps[0];
   return (
     <div className="al-info al-route-info" data-testid="al-route-panel">
+      {ride && rideOp && <RideView state={state} company={rideOp.i} plane={rideOp.planes[0].id} route={rideOp.rt!.id} onClose={() => setRide(false)} />}
       <div className="al-info-main">
         <header className="al-info-head">
           <RouteArt />
@@ -493,6 +502,11 @@ function RoutePanel({ state, viewer, canAct, onEditRoute, onPlanRoute, onSelect,
               {me.branches.includes(r.a) && me.branches.includes(r.b) ? '두 도시 모두 지점이 있어요.' : '지점이 없는 도시는 노선을 열 때 함께 열 수 있어요.'}
             </small>
           </>
+        )}
+        {rideOp && (
+          <button type="button" className="btn al-ride-open" onClick={() => setRide(true)} title="이 노선을 나는 비행기에 타서 3D로 따라가 봐요" data-testid="al-ride-route-open">
+            ✈️ {rideOp.i === viewer ? '내 비행기' : `${rideOp.co.name} 비행기`} 타 보기
+          </button>
         )}
         {r.stats && r.stats.xfer > 0 && (
           <p className="al-muted al-mp-note">

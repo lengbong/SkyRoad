@@ -236,6 +236,8 @@ interface Builder {
   faces: Face[];
   strokes: Stroke[];
   extras: { layer: number; unit: number; order: number; svg: (P: Projector, k: number, ox: number, oy: number) => string }[];
+  /** 꼬리 무늬 자리 (3D 모형이 쓴다) */
+  logo?: { shape: ShapeKind; cx: number; cz: number; r: number; y: number; color: string };
 }
 
 // ------------------------------------------------------------------ 동체
@@ -698,6 +700,7 @@ function tails(B: Builder, s: PlaneShape, sec: (u: number) => Section, liv: Live
     const logo = liv.logo;
     const color = liv.logoColor ?? '#fff';
     const yOff = rootC * 0.06;
+    B.logo = { shape: logo, cx, cz, r, y: yOff, color };
     B.extras.push({
       layer: 20,
       unit: 5,
@@ -1078,4 +1081,155 @@ export function renderPlaneSvg(s: PlaneShape, liv: Livery, opts: RenderOptions =
 /** <img src>에 바로 넣는 data URL */
 export function svgDataUrl(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+// ------------------------------------------------------------------ 3D (타 보기)
+
+/** three.js에 넘기는 삼각형 모형 (모형 좌표: x 앞·코 0, y 왼쪽, z 위; m) */
+export interface PlaneMesh {
+  /** 불투명한 면: 삼각형마다 꼭짓점 셋 [x, y, z, …] */
+  positions: Float32Array;
+  /** 꼭짓점 색 [r, g, b, …] (0~1) */
+  colors: Float32Array;
+  /** 돌고 있는 프로펠러처럼 흐릿한 면 */
+  glass: { positions: Float32Array; colors: Float32Array };
+  min: Vec;
+  max: Vec;
+}
+
+/** 꼬리 무늬 모양의 점들 (가운데에서 부채꼴로 나눠도 되는 모양) */
+function logoPoints(shape: ShapeKind, r: number): [number, number][] {
+  switch (shape) {
+    case 'circle':
+      return Array.from({ length: 28 }, (_, i) => {
+        const a = (2 * Math.PI * i) / 28;
+        return [r * 0.85 * Math.cos(a), r * 0.85 * Math.sin(a)];
+      });
+    case 'star':
+      return Array.from({ length: 10 }, (_, i) => {
+        const a = rad(90 + i * 36);
+        const rr = i % 2 === 0 ? r : r * 0.45;
+        return [rr * Math.cos(a), rr * Math.sin(a)];
+      });
+    case 'leaf': {
+      const a = rad(-35);
+      const rot = (x: number, y: number): [number, number] => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+      const bez = (p0: [number, number], p1: [number, number], p2: [number, number], p3: [number, number], t: number): [number, number] => {
+        const u = 1 - t;
+        return [0, 1].map((i) => u * u * u * p0[i] + 3 * u * u * t * p1[i] + 3 * u * t * t * p2[i] + t * t * t * p3[i]) as [number, number];
+      };
+      const out: [number, number][] = [];
+      for (let i = 0; i < 12; i++) out.push(rot(...bez([0, r], [r * 0.95, r * 0.45], [r * 0.95, -r * 0.45], [0, -r], i / 12)));
+      for (let i = 0; i < 12; i++) out.push(rot(...bez([0, -r], [-r * 0.95, -r * 0.45], [-r * 0.95, r * 0.45], [0, r], i / 12)));
+      return out;
+    }
+    case 'diamond':
+      return [
+        [0, r],
+        [r * 0.75, 0],
+        [0, -r],
+        [-r * 0.75, 0],
+      ];
+  }
+}
+
+/** 기종 모양 + 칠 → 3D 삼각형 (SVG 그림과 같은 모형을 쓴다) */
+export function planeMesh(s: PlaneShape, liv: Livery): PlaneMesh {
+  const B: Builder = { faces: [], strokes: [], extras: [] };
+  const sec = fuselageSection(s);
+  fuselage(B, s, sec, liv);
+  decals(B, s, sec, liv);
+  const g = wingGeometry(s, sec);
+  wings(B, s, g, liv);
+  const tail = tails(B, s, sec, liv);
+  engines(B, s, sec, g, tail, liv);
+
+  const solidP: number[] = [];
+  const solidC: number[] = [];
+  const glassP: number[] = [];
+  const glassC: number[] = [];
+  const min: [number, number, number] = [Infinity, Infinity, Infinity];
+  const max: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+  const tri = (P: number[], C: number[], a: Vec, b: Vec, c: Vec, col: Rgb) => {
+    for (const p of [a, b, c]) {
+      P.push(p[0], p[1], p[2]);
+      C.push(col[0] / 255, col[1] / 255, col[2] / 255);
+      for (let i = 0; i < 3; i++) {
+        min[i] = Math.min(min[i], p[i]);
+        max[i] = Math.max(max[i], p[i]);
+      }
+    }
+  };
+  /** 볼록한 면은 첫 점에서, 별처럼 오목할 수 있는 면은 가운데에서 부채꼴로 */
+  const poly = (P: number[], C: number[], pts: readonly Vec[], col: Rgb, fromCenter = false) => {
+    if (pts.length < 3) return;
+    if (fromCenter) {
+      const c = centroid(pts);
+      for (let i = 0; i < pts.length; i++) tri(P, C, c, pts[i], pts[(i + 1) % pts.length], col);
+    } else for (let i = 1; i < pts.length - 1; i++) tri(P, C, pts[0], pts[i], pts[i + 1], col);
+  };
+  for (const f of B.faces) {
+    if (f.opacity !== undefined && f.opacity < 0.9) poly(glassP, glassC, f.pts, f.color, true);
+    else poly(solidP, solidC, f.pts, f.color);
+  }
+
+  // 선(창문 점선·문 테두리)은 그 둘레 동체 바깥쪽으로 얇은 띠를 붙인다. SVG는 보이는 쪽만 그려서 반대쪽에도 똑같이.
+  const outward = (p: Vec): Vec => norm([0, p[1], p[2] - sec(-p[0]).zc]);
+  const band = (a: Vec, b: Vec, width: number, col: Rgb) => {
+    const t = sub(b, a);
+    const n = outward(mul(add(a, b), 0.5));
+    let w = norm([t[1] * n[2] - t[2] * n[1], t[2] * n[0] - t[0] * n[2], t[0] * n[1] - t[1] * n[0]]);
+    w = mul(w, width / 2);
+    poly(solidP, solidC, [sub(a, w), sub(b, w), add(b, w), add(a, w)], col);
+  };
+  for (const st of B.strokes) {
+    const col = hex(st.color);
+    for (const side of [1, -1]) {
+      const pts = st.pts.map((p) => [p[0], p[1] * side, p[2]] as Vec);
+      if (st.dash) {
+        // 점선: 길이를 따라 dash만큼 칠하고 gap만큼 건너뛴다
+        const [on, off] = st.dash;
+        let drawing = true;
+        let left = on;
+        let start: Vec = pts[0];
+        for (let i = 1; i < pts.length; i++) {
+          let a = pts[i - 1];
+          const b = pts[i];
+          let segLen = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+          while (segLen > 1e-9) {
+            const step = Math.min(left, segLen);
+            const p = add(a, mul(sub(b, a), step / segLen));
+            if (drawing && step > 0) band(start, p, st.width, col);
+            segLen -= step;
+            left -= step;
+            a = p;
+            if (left <= 1e-9) {
+              drawing = !drawing;
+              left = drawing ? on : off;
+              start = p;
+            } else if (drawing) start = p;
+          }
+        }
+      } else for (let i = 1; i < pts.length; i++) band(pts[i - 1], pts[i], st.width, col);
+    }
+  }
+
+  // 꼬리 무늬 (SVG는 보이는 왼쪽 면에만 그린다. 3D는 양쪽 면에)
+  const logo = B.logo;
+  if (logo) {
+    const col = hex(logo.color);
+    const ring = logoPoints(logo.shape, logo.r);
+    for (const side of [1, -1]) {
+      const pts = ring.map(([px, py]) => [logo.cx - px, side * logo.y, logo.cz + py] as Vec);
+      poly(solidP, solidC, side > 0 ? pts : [...pts].reverse(), col, true);
+    }
+  }
+
+  return {
+    positions: new Float32Array(solidP),
+    colors: new Float32Array(solidC),
+    glass: { positions: new Float32Array(glassP), colors: new Float32Array(glassC) },
+    min,
+    max,
+  };
 }

@@ -4924,3 +4924,268 @@ text.al-neg {
   margin: 6px 0 14px;
   font-size: 0.85rem;
 }
+
+/* ================================================================
+   타 보기: 운항 중인 비행기에 타서 3D로 따라가며 보기 (RideView.tsx)
+   ================================================================ */
+.al-ride-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: #050a16;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+.al-ride-stage {
+  position: absolute;
+  inset: 0;
+}
+.al-ride-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+.al-ride-canvas:active {
+  cursor: grabbing;
+}
+.al-ride-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px 28px;
+  background: linear-gradient(rgba(7, 16, 29, 0.88), rgba(7, 16, 29, 0));
+  pointer-events: none;
+}
+.al-ride-head > * {
+  pointer-events: auto;
+}
+.al-ride-title h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.al-ride-title p {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.al-ride-title small {
+  font-family: var(--al-mono, monospace);
+  color: var(--accent);
+}
+.al-ride-pick {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+.al-ride-pick select {
+  max-width: 260px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.al-ride-stats {
+  position: absolute;
+  left: 16px;
+  bottom: 84px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100% - 32px);
+  pointer-events: none;
+}
+.al-ride-stats > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 88px;
+  padding: 5px 10px;
+  border: 1px solid var(--al-glass-line, rgba(124, 172, 232, 0.2));
+  border-radius: 10px;
+  background: rgba(9, 19, 34, 0.78);
+  backdrop-filter: blur(4px);
+}
+.al-ride-stats small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.al-ride-stats b {
+  color: var(--accent);
+  font-family: var(--al-mono, monospace);
+  font-size: 15px;
+}
+.al-ride-stats > .al-ride-phase {
+  justify-content: center;
+  color: var(--al-glow, #4cc9ff);
+  font-size: 15px;
+  font-weight: 800;
+}
+.al-ride-progress {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 66px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.al-ride-progress i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(255, 193, 69, 0.5);
+}
+.al-ride-progress em {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.55);
+}
+.al-ride-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 22px 16px 14px;
+  background: linear-gradient(rgba(7, 16, 29, 0), rgba(7, 16, 29, 0.88));
+}
+.al-ride-speeds,
+.al-ride-cams {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.al-ride-bar .al-chip {
+  padding: 5px 12px;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.al-ride-bar .al-chip.al-on {
+  background: linear-gradient(180deg, rgba(255, 193, 69, 0.3), rgba(255, 193, 69, 0.12));
+  border-color: var(--al-lit, var(--accent));
+  color: var(--accent);
+}
+.al-ride-bar .al-map-btn {
+  min-width: 34px;
+  padding: 4px 8px;
+  background: var(--surface-2);
+  font-size: 15px;
+}
+.al-ride-note {
+  position: absolute;
+  top: 74px;
+  left: 50%;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 6px 14px;
+  border: 1px solid var(--al-lit, var(--accent));
+  border-radius: 999px;
+  background: rgba(9, 19, 34, 0.9);
+  font-size: 13px;
+  transform: translateX(-50%);
+}
+.al-ride-done {
+  position: absolute;
+  top: 24%;
+  left: 50%;
+  width: min(420px, calc(100% - 32px));
+  padding: 18px 22px;
+  border: 1px solid var(--al-glass-line, rgba(124, 172, 232, 0.2));
+  border-radius: 16px;
+  background: var(--al-glass, #0f1b2d);
+  box-shadow: var(--shadow);
+  text-align: center;
+  transform: translateX(-50%);
+}
+.al-ride-done h3 {
+  margin: 0 0 6px;
+  font-size: 19px;
+}
+.al-ride-done p {
+  margin: 0 0 14px;
+  color: var(--text-muted);
+}
+.al-ride-done > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.al-ride-msg {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: min(480px, calc(100% - 32px));
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: center;
+  transform: translateX(-50%);
+}
+.al-ride-help {
+  position: absolute;
+  right: 16px;
+  bottom: 84px;
+  margin: 0;
+  color: rgba(230, 238, 248, 0.6);
+  font-size: 11.5px;
+  text-align: right;
+  pointer-events: none;
+}
+.al-ride-pin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.al-ride-pin::before {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(255, 193, 69, 0.8);
+}
+.al-ride-pin b {
+  position: absolute;
+  padding: 2px 8px;
+  border: 1px solid var(--al-lit, var(--accent));
+  border-radius: 999px;
+  background: rgba(9, 19, 34, 0.86);
+  font-size: 12.5px;
+  white-space: nowrap;
+  transform: translate(-50%, -150%);
+}
+@media (max-width: 760px) {
+  .al-ride-help {
+    display: none;
+  }
+  .al-ride-stats > span {
+    min-width: 0;
+  }
+  .al-ride-head {
+    flex-direction: column;
+  }
+}
