@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MODEL } from './aircraft';
 import { defaultCabin } from './cabin';
 import { seededRandom } from '../../lib/random';
+import { advise, applyAdvice } from './advisor';
 import { aiTurn } from './ai';
 import { makeChoice } from './choices';
 import { applyAction, autoStopReason, createGame, runMonth, timesBlocker } from './rules';
@@ -16,6 +17,7 @@ import {
   payroll,
   staffCap,
   staffNeed,
+  staffPipe,
   staffTotal,
   strikeChance,
 } from './staff';
@@ -45,6 +47,9 @@ function fleet(dests: string[], { from = 'seoul', model = 'a320', age = 0, freq 
   }
   return s;
 }
+
+/** 비서가 보는 회사: 노선 열세 개 */
+const DESTS = ['busan', 'jeju', 'tokyo', 'osaka', 'beijing', 'shanghai', 'hongkong', 'taipei', 'bangkok', 'singapore', 'manila', 'kualalumpur', 'jakarta'];
 
 /** 0번 회사 직원을 필요한 만큼 (배수) 맞춘다 */
 function staffTo(s: AirlineState, mult: number): AirlineState {
@@ -118,6 +123,50 @@ describe('직원: 뽑기·내보내기·임금', () => {
     // 서둘러 뽑으면 더 비싸고, 훈련원이 있으면 싸다
     expect(hireCost(s, c0, 'pilot', 10, true)).toBeGreaterThan(hireCost(s, c0, 'pilot', 10, false));
     expect(hireCost(s, { ...c0, academy: true }, 'pilot', 10, false)).toBeLessThan(hireCost(s, c0, 'pilot', 10, false));
+  });
+
+  it('경영 비서는 사람이 넉넉하면 뽑으라고 하지 않는다', () => {
+    const s = fleet(DESTS);
+    // 모두 6% 남으면 (인사 화면은 '넉넉해요') 더 뽑을 까닭이 없다
+    expect(advise(staffTo(s, 1.06), 0, 99).find((a) => a.key === 'hire')).toBeUndefined();
+    // 비행기가 백 대 넘는 큰 회사도 (조종사 필요 1,861 · 지금 1,978에 287명을 더 뽑으라던 때처럼)
+    expect(advise(staffTo(fleet(Array(10).fill(DESTS).flat()), 1.06), 0, 99).find((a) => a.key === 'hire')).toBeUndefined();
+    // 낡은 비행기를 바꾸려는 주문은 비행기 수가 그대로라 사람도 그대로다
+    const renew = staffTo(s, 1.06);
+    const c = renew.companies[0];
+    for (const p of c.planes.slice(0, 3)) c.orders.push({ id: renew.nextId++, model: 'a320', due: renew.t + 1, price: 0, replaces: p.id });
+    expect(advise(renew, 0, 99).find((a) => a.key === 'hire')).toBeUndefined();
+  });
+
+  it('경영 비서는 모자랄 때 조금만 남게 뽑으라고 한다 (인사 화면이 너무 많다고 하는 15%보다 아래)', () => {
+    const s = staffTo(fleet(DESTS), 0.97);
+    const need = staffNeed(s, s.companies[0]);
+    const tip = advise(s, 0, 99).find((a) => a.key === 'hire');
+    expect(tip?.title).toContain('조종사');
+    const after = applyAdvice(tip!, s).state.companies[0];
+    for (const g of STAFF_GROUPS) {
+      const supply = after.staff[g].have + staffPipe(after, g);
+      expect(supply).toBeGreaterThanOrEqual(need[g]);
+      expect(supply).toBeLessThanOrEqual(Math.ceil(need[g] * 1.12));
+    }
+    // 비행기가 백 대 넘는 큰 회사는 조종사 5%쯤만 남긴다
+    const big = staffTo(fleet(Array(10).fill(DESTS).flat()), 0.97);
+    const bigNeed = staffNeed(big, big.companies[0]);
+    const bigTip = advise(big, 0, 99).find((a) => a.key === 'hire');
+    const bigAfter = applyAdvice(bigTip!, big).state.companies[0];
+    expect(bigAfter.staff.pilot.have + staffPipe(bigAfter, 'pilot')).toBeLessThanOrEqual(Math.ceil(bigNeed.pilot * 1.05) + 1);
+  });
+
+  it('경영 비서는 곧 올 새 비행기 몫까지 미리 뽑으라고 한다', () => {
+    const s = staffTo(fleet(DESTS), 1.03);
+    const c = s.companies[0];
+    for (let k = 0; k < 4; k++) c.orders.push({ id: s.nextId++, model: 'a320', due: s.t + 1, price: 0 });
+    const need = staffNeed(s, c);
+    const tip = advise(s, 0, 99).find((a) => a.key === 'hire');
+    expect(tip?.detail).toContain('새 비행기 4대');
+    const after = applyAdvice(tip!, s).state.companies[0];
+    const perPlane = need.pilot / c.planes.length;
+    expect(after.staff.pilot.have + staffPipe(after, 'pilot')).toBeGreaterThanOrEqual(need.pilot + perPlane * 4);
   });
 
   it('내보내면 석 달 치 임금이 들고 남은 사람들이 서운해한다', () => {

@@ -559,29 +559,45 @@ export function advise(state: AirlineState, ci: number, max = 5, already: readon
   {
     const hires: { g: (typeof STAFF_GROUPS)[number]; n: number; fast: boolean }[] = [];
     let urgent = false;
+    let anyShort = false;
+    let waiting = 0;
     for (const g of STAFF_GROUPS) {
       const st = c.staff[g];
       const supply = st.have + staffPipe(c, g);
       const lead = hireTime(c, g, false);
       const perPlane = c.planes.length > 0 ? need[g] / flyingN : { pilot: 11, cabin: 20, tech: 6, ground: 4 }[g];
-      const buffer = { pilot: 0.15, cabin: 0.1, tech: 0.08, ground: 0.05 }[g];
-      // 낡은 비행기를 바꾸려는 주문은 비행기 수가 그대로라 일손도 그대로다
+      // 뽑는 동안 노선이 조금 늘어도 버틸 만큼만 남긴다 (작은 회사는 비행기 한 대 몫까지).
+      // 남는 사람은 임금만 나가니, 인사 화면이 '너무 많다'고 하는 15%는 넘지 않게 12%까지만
+      const pct = { pilot: 0.05, cabin: 0.04, tech: 0.03, ground: 0.02 }[g];
+      const reserve = Math.min(Math.max(need[g] * pct, perPlane, g === 'pilot' ? 2 : 0), need[g] * 0.12);
+      // 뽑는 동안 올 새 비행기 몫 (낡은 비행기를 바꾸려는 주문은 비행기 수가 그대로라 일손도 그대로다)
       const dueSoon = c.orders.filter((o) => o.replaces === undefined && o.due <= state.t + lead).length;
-      const target = Math.ceil(need[g] * (1 + buffer) + perPlane * (lead / 3 + dueSoon) + (g === 'pilot' ? 2 : 0));
-      // 조금 모자란 것은 기다렸다가 한꺼번에 (자주 누르지 않게)
-      if (need[g] <= 0 || supply >= target * 0.92) continue;
+      const base = need[g] + perPlane * dueSoon;
+      // 여유가 반 넘게 남았으면 기다렸다가 한꺼번에 (자주 누르지 않게)
+      if (need[g] <= 0 || supply >= base + reserve / 2) continue;
       const short = st.have < need[g];
       if (short && (g === 'pilot' || g === 'cabin')) urgent = true;
-      hires.push({ g, n: Math.min(MAX_HIRE, Math.ceil(target * 1.05) - supply), fast: short && STAFF_INFO[g].fast < STAFF_INFO[g].hire });
+      anyShort ||= short;
+      waiting = Math.max(waiting, dueSoon);
+      hires.push({ g, n: Math.min(MAX_HIRE, Math.ceil(base + reserve) - supply), fast: short && STAFF_INFO[g].fast < STAFF_INFO[g].hire });
     }
     if (hires.length > 0) {
       const cost = hires.reduce((sum, h) => sum + hireCost(state, c, h.g, h.n, h.fast), 0);
       const months = Math.max(...hires.map((h) => hireTime(c, h.g, h.fast)));
+      const why = urgent
+        ? cap < 1
+          ? '일손이 모자라 결항이 나고 있어요. '
+          : '초과 근무로 버티는 중이에요. '
+        : anyShort
+          ? '일손이 조금 모자라요. '
+          : waiting > 0
+          ? `새 비행기 ${waiting}대가 곧 와요. 그 몫까지 미리 뽑아 두면 좋아요. `
+          : '남는 사람이 얼마 없어요. 뽑는 데 몇 달 걸리니 조금 미리 뽑아 두면 좋아요. ';
       out.push({
         key: 'hire',
         icon: '👥',
         title: `직원 뽑기: ${hires.map((h) => `${STAFF_INFO[h.g].name} ${h.n}명`).join(' · ')}`,
-        detail: `${urgent ? (cap < 1 ? '일손이 모자라 결항이 나고 있어요. ' : '초과 근무로 버티는 중이에요. ') : '앞으로 늘 비행기 몫까지 미리 뽑아 두면 좋아요. '}길게는 ${months}달 걸리고 모두 ${fmtFine(cost)} 들어요.`,
+        detail: `${why}길게는 ${months}달 걸리고 모두 ${fmtFine(cost)} 들어요.`,
         label: '모두 뽑기',
         apply: (s2) => {
           const pl = planner(s2, ci);
