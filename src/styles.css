@@ -1,0 +1,1205 @@
+:root {
+  --bg: #f6f1e7;
+  --surface: #ffffff;
+  --surface-2: #faf7f0;
+  --text: #2b2724;
+  --text-muted: #6f675e;
+  --border: #e2d9c8;
+  --accent: #d9622b;
+  --accent-dark: #b34c1d;
+  --accent-text: #ffffff;
+  --shadow: 0 2px 10px rgba(60, 45, 20, 0.08);
+  --radius: 14px;
+  --board-bg: #fffdf7;
+  --cell-stroke: #bdb3a1;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #1d1b19;
+    --surface: #2a2724;
+    --surface-2: #322e2a;
+    --text: #f1ece4;
+    --text-muted: #b5ab9d;
+    --border: #443f38;
+    --accent: #ec7a43;
+    --accent-dark: #d9622b;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #1d1b19;
+  --surface: #2a2724;
+  --surface-2: #322e2a;
+  --text: #f1ece4;
+  --text-muted: #b5ab9d;
+  --border: #443f38;
+  --accent: #ec7a43;
+  --accent-dark: #d9622b;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2 {
+  margin: 0;
+  line-height: 1.25;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 16px;
+}
+
+/* ---------- 버튼 ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.05s;
+}
+.btn:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn:focus-visible,
+.game-card:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent-dark);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-dark);
+}
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn-small {
+  padding: 4px 10px;
+  font-size: 14px;
+}
+.btn-selected {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  font-weight: 700;
+}
+.btn-large {
+  padding: 12px 32px;
+  font-size: 18px;
+}
+
+.dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: none;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+}
+.dot.small {
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.tag {
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-muted);
+}
+
+/* ---------- 허브 ---------- */
+.hub {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-top: 48px;
+}
+.hub-header h1 {
+  font-size: 40px;
+}
+.hub-header p {
+  color: var(--text-muted);
+  font-size: 18px;
+  margin: 8px 0 28px;
+}
+.game-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+.game-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+button.game-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(60, 45, 20, 0.14);
+}
+.nowrap {
+  white-space: nowrap;
+}
+.game-icon {
+  font-size: 44px;
+  line-height: 1;
+  flex: none;
+  width: 52px;
+  text-align: center;
+}
+.game-icon svg {
+  display: block;
+  width: 52px;
+  height: 52px;
+}
+.hub-category + .hub-category {
+  margin-top: 32px;
+}
+.hub-category h2 {
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+.game-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.game-info strong {
+  font-size: 22px;
+}
+.game-info small {
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.game-saved {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.game-stats {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+}
+.guide-overlay {
+  z-index: 80;
+}
+.guide-card {
+  max-width: min(440px, 100%);
+}
+.guide-game {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.guide-art {
+  font-size: 64px;
+  line-height: 1.2;
+  letter-spacing: 2px;
+  animation: trophy 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.guide-card h2 {
+  font-size: 24px;
+  margin: 6px 0 8px;
+}
+.guide-text {
+  margin: 0 0 14px;
+  min-height: 4.5em;
+  font-size: 17px;
+}
+.guide-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.guide-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.guide-dots .guide-dot-on {
+  background: var(--accent);
+}
+.guide-open {
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  z-index: 35;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.guide-open:hover {
+  opacity: 1;
+}
+.guide-open:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+@media print {
+  .guide-open {
+    display: none;
+  }
+}
+.hub-resume {
+  margin-bottom: 28px;
+  padding: 14px 18px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.hub-resume h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.hub-resume ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hub-resume-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-weight: 700;
+  cursor: pointer;
+}
+.hub-resume-chip:hover {
+  border-color: var(--accent);
+}
+.hub-resume-chip:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.hub-resume-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  font-size: 22px;
+  line-height: 1;
+}
+.hub-resume-icon svg {
+  width: 28px;
+  height: 28px;
+}
+.hub-footer {
+  margin-top: 40px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ---------- 설정 화면 ---------- */
+.setup {
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.setup-header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.setup-header h1 {
+  font-size: 32px;
+}
+.setup-header p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+}
+.setup-section,
+.resume-card,
+.how-to {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.setup-section h2 {
+  font-size: 20px;
+  margin-bottom: 14px;
+}
+.resume-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-color: var(--accent);
+}
+.resume-card span {
+  color: var(--text-muted);
+}
+.seat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.seat-card {
+  border: 2px solid;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+  background: var(--surface);
+}
+/* 비운 자리: 참가 아이콘은 또렷하게 두어 다시 고르기 쉽게, 나머지만 흐리게 */
+.seat-empty {
+  border-style: dashed;
+}
+.seat-empty .seat-head,
+.seat-empty .seat-name {
+  opacity: 0.55;
+}
+.seat-head {
+  color: #fff;
+  font-weight: 700;
+  padding: 6px 12px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+.seat-card > label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.seat-card input {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.warn {
+  color: #c0392b;
+  margin: 12px 0 0;
+}
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.section-title-row h2 {
+  margin: 0;
+}
+.preset-buttons {
+  display: flex;
+  gap: 8px;
+}
+.rule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 20px;
+}
+.rule-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.rule-item input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+.rule-item span {
+  display: flex;
+  flex-direction: column;
+}
+.rule-item small {
+  color: var(--text-muted);
+}
+.setup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.setup-back {
+  align-self: flex-start;
+}
+.sub-title {
+  margin: 20px 0 10px;
+  font-size: 16px;
+}
+.how-to summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.how-to ol {
+  margin: 12px 0 0;
+  padding-left: 22px;
+}
+
+/* ---------- 두 사람 자리 선택 (components/DuelPicker.tsx) ---------- */
+.duel-grid {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.duel-card {
+  flex: 1;
+  min-width: 0;
+  border: 2px solid;
+  /* 편 색이 아주 어두워도(흑돌 등) 다크 모드에서 카드 테두리가 보이게 */
+  box-shadow: 0 0 0 1px var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+  background: var(--surface);
+}
+.duel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+.duel-icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+}
+.duel-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.duel-first {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+.duel-card > label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.duel-card input {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.duel-swap {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 20px;
+}
+
+/* ---------- 아이콘 버튼으로 고르기: 참가 종류, 속도 (components/IconPicker.tsx) ---------- */
+.choice-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.seat-card > .choice-field,
+.duel-card > .choice-field {
+  padding: 0 12px;
+}
+/* 이름표를 왼쪽에 두는 모양 (설정 화면 아래 속도, 게임 화면 패널) */
+.choice-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+}
+.choice-inline > span {
+  flex: none;
+}
+.choice-inline > .choice-group {
+  flex: 1;
+}
+.choice-group {
+  --pick: var(--accent);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+/* `.controls label` 같은 일반 label 규칙에 덮이지 않게 한 단계 더 구체적으로 */
+.choice-group > .choice-option {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px 4px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    transform 0.12s;
+}
+.choice-option:hover {
+  border-color: var(--pick);
+  color: var(--text);
+}
+.choice-option:active {
+  transform: scale(0.95);
+}
+/* 진짜 라디오 버튼은 숨기되 키보드(Tab, 방향키)로는 그대로 고를 수 있게 둔다 */
+.choice-option input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.choice-option:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.choice-option.choice-on {
+  background: var(--pick);
+  border-color: var(--pick);
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+.choice-icon {
+  display: block;
+  flex: none;
+}
+.choice-option.choice-on .choice-icon {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+.choice-option span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 작은 알약 모양: 숫자처럼 글자만 있는 선택 (목표 점수, 판 수 …) */
+.choice-small {
+  font-size: 13px;
+}
+.choice-small > .choice-group {
+  display: flex;
+  flex-wrap: wrap;
+}
+.choice-small > .choice-group > .choice-option {
+  min-width: 56px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+.choice-dimmed > .choice-group {
+  opacity: 0.6;
+}
+.choice-disabled > .choice-group {
+  opacity: 0.45;
+}
+.choice-disabled > .choice-group > .choice-option {
+  cursor: not-allowed;
+  transform: none;
+}
+.choice-disabled .choice-option:hover {
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+.choice-disabled .choice-option.choice-on:hover {
+  border-color: var(--pick);
+  color: #fff;
+}
+/* 규칙 고르기 칸 밑에 붙는 세부 선택 (동그라미·네모 칸 너비만큼 들여 쓴다) */
+.rule-extra {
+  margin: 6px 0 0 28px;
+}
+
+/* ---------- 차례 넘김 화면 (components/PassScreen.tsx) ---------- */
+.pass-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: inherit;
+  background: rgba(30, 24, 18, 0.72);
+  backdrop-filter: blur(6px);
+  animation: fade-in 0.25s ease-out;
+}
+.pass-card {
+  background: var(--surface);
+  color: var(--text);
+  border: 4px solid;
+  border-radius: 20px;
+  padding: 24px 32px;
+  max-width: 440px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+.pass-eyes {
+  font-size: 52px;
+  line-height: 1;
+}
+.pass-card h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+  font-size: 24px;
+}
+.pass-card p {
+  margin: 0 0 16px;
+  color: var(--text-muted);
+}
+.pass-card .pass-note {
+  color: var(--text);
+  font-weight: 600;
+}
+.pass-card kbd {
+  font: inherit;
+  font-size: 11px;
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  opacity: 0.7;
+}
+
+/* ---------- 게임 화면 ---------- */
+.race-game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  height: calc(100vh - 32px);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.board-wrap {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.board {
+  width: 100%;
+  height: 100%;
+  max-height: calc(100vh - 32px);
+  aspect-ratio: 1;
+  user-select: none;
+}
+.board-bg {
+  fill: var(--board-bg);
+  stroke: #8b7f6a;
+  stroke-width: 0.08;
+  filter: drop-shadow(0 0.1px 0.2px rgba(0, 0, 0, 0.25));
+}
+.cell {
+  stroke: var(--cell-stroke);
+  stroke-width: 0.035;
+}
+.star {
+  fill: #c8bfae;
+}
+.star-start {
+  fill: rgba(255, 255, 255, 0.85);
+}
+.yard-label {
+  font-size: 0.42px;
+  font-weight: 700;
+  fill: #fff;
+  text-anchor: middle;
+  dominant-baseline: central;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.25);
+  stroke-width: 0.06px;
+}
+.yard-empty {
+  opacity: 0.3;
+  filter: grayscale(0.7);
+}
+.yard-current > rect:first-child {
+  stroke-width: 0.16;
+  animation: yard-pulse 1.4s ease-in-out infinite;
+}
+@keyframes yard-pulse {
+  50% {
+    stroke-opacity: 0.35;
+  }
+}
+.piece {
+  transition: transform 0.14s ease-out;
+}
+.piece-movable {
+  cursor: pointer;
+}
+.piece-glow {
+  fill: rgba(255, 255, 255, 0.55);
+  stroke-width: 0.07;
+  stroke-dasharray: 0.16 0.1;
+  animation: glow-spin 1.6s linear infinite;
+}
+@keyframes glow-spin {
+  to {
+    stroke-dashoffset: -0.52;
+  }
+}
+.piece-movable:hover > circle:nth-child(2) {
+  filter: brightness(1.12);
+}
+.piece-threatened {
+  animation: shake 0.4s ease-in-out infinite;
+}
+@keyframes shake {
+  25% {
+    opacity: 0.55;
+  }
+  75% {
+    opacity: 1;
+  }
+}
+.piece-number {
+  fill: #fff;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.35);
+  stroke-width: 0.05px;
+}
+.target-ring {
+  fill: rgba(255, 255, 255, 0.4);
+  stroke-width: 0.07;
+  stroke-dasharray: 0.12 0.08;
+  pointer-events: none;
+}
+
+/* ---------- 사이드 패널 ---------- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.panel > section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+.panel h2 {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.turn-card {
+  border-width: 3px !important;
+  color: #2b2724;
+}
+.turn-card .tag {
+  background: rgba(0, 0, 0, 0.08);
+  color: #6f675e;
+}
+.turn-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+}
+.dice-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 12px 0 8px;
+}
+.dice {
+  width: 84px;
+  height: 84px;
+  flex: none;
+}
+.dice-rolling {
+  animation: dice-shake 0.14s linear infinite;
+}
+@keyframes dice-shake {
+  0% {
+    transform: rotate(-12deg) scale(0.95);
+  }
+  50% {
+    transform: rotate(12deg) scale(1.03);
+  }
+  100% {
+    transform: rotate(-12deg) scale(0.95);
+  }
+}
+.btn-roll {
+  flex: 1;
+  flex-direction: column;
+  gap: 0;
+  padding: 12px;
+  font-size: 18px;
+}
+.btn-roll small {
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.85;
+}
+.hint {
+  margin: 0;
+  min-height: 1.5em;
+  font-weight: 600;
+  color: #4a433c;
+}
+.players ul,
+.log ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.players li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.players li.is-current {
+  background: var(--surface-2);
+  outline: 2px solid var(--border);
+}
+.player-name {
+  font-weight: 700;
+}
+.player-kind {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex: 1;
+}
+.goal-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.goal-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid;
+}
+.medal {
+  font-size: 18px;
+  min-width: 26px;
+  text-align: center;
+}
+.log {
+  flex: 1;
+  min-height: 120px;
+}
+.log li {
+  font-size: 14px;
+  padding: 3px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.log li:first-child {
+  font-weight: 700;
+}
+.log li:last-child {
+  border-bottom: none;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+/* 공용 버튼 줄 (components/GameControls.tsx): 좁은 패널에서도 2칸씩 가지런히 */
+.game-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.game-controls > label,
+.game-controls > .choice-field {
+  grid-column: 1 / -1;
+}
+.game-controls > .btn {
+  padding: 7px 8px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* ---------- 결과 화면 ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(20, 15, 10, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fade-in 0.3s ease-out;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.result-card {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 28px 32px;
+  min-width: min(420px, 100%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+.result-card h2 {
+  font-size: 30px;
+  margin-bottom: 16px;
+}
+.result-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.result-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* 결과 화면의 우승 트로피 (튀어나오는 연출) */
+.trophy {
+  font-size: 64px;
+  line-height: 1;
+  animation: trophy 0.9s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+@keyframes trophy {
+  0% {
+    transform: scale(0) rotate(-30deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trophy {
+    animation: none;
+  }
+}
+
+/* ---------- 우승 꽃가루 (components/Confetti.tsx) ---------- */
+.confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.confetti span {
+  position: absolute;
+  top: -20px;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes confetti-fall {
+  0% {
+    transform: translate(0, -20px) rotate(0deg);
+  }
+  100% {
+    transform: translate(var(--drift), 105vh) rotate(var(--spin));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti span {
+    animation: none;
+  }
+}
+
+/* ---------- 좁은 화면 대응 ---------- */
+@media (max-width: 1000px) {
+  .race-game {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .board {
+    max-height: none;
+    max-width: 100%;
+  }
+  .seat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .rule-grid {
+    grid-template-columns: 1fr;
+  }
+  .game-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .seat-grid {
+    grid-template-columns: 1fr;
+  }
+  .duel-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .duel-swap {
+    align-self: center;
+  }
+  .setup-footer,
+  .resume-card,
+  .section-title-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hub {
+    padding-top: 16px;
+  }
+  .hub-header h1 {
+    font-size: 30px;
+  }
+}

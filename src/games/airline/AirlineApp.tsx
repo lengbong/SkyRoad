@@ -11,8 +11,8 @@ import './theme.css'; // 운항 관제실 테마: 다른 항공사 CSS보다 나
 
 type Screen = { type: 'setup' } | { type: 'game'; setup: AirlineSetup; state: AirlineState; key: number };
 
-/** 하늘길 항공사: 설정 화면 ↔ 게임 화면 */
-export function AirlineApp({ onExit }: { onExit: () => void }) {
+/** 하늘길 항공사: 설정 화면 ↔ 게임 화면 (게임 화면의 ‘처음 화면’을 누르면 설정 화면으로 돌아온다) */
+export function AirlineApp() {
   const [settings, setSettings] = useGameSettings(AIRLINE_SETTINGS_KEY);
   const [saved, setSaved] = useState<SavedAirlineGame | null>(null);
   const [lastSetup, setLastSetup] = useState<AirlineSetup>(loadAirlineSetup);
@@ -60,7 +60,7 @@ export function AirlineApp({ onExit }: { onExit: () => void }) {
         onSettings={setSettings}
         onRestart={() => start(screen.setup)}
         onChangeSetup={backToSetup}
-        onExit={onExit}
+        onExit={backToSetup}
       />
     );
   }
@@ -74,7 +74,6 @@ export function AirlineApp({ onExit }: { onExit: () => void }) {
       onStart={start}
       onImport={importSaved}
       onResume={() => saved && setScreen({ type: 'game', setup: saved.setup, state: saved.state, key: Date.now() })}
-      onBack={onExit}
     />
   );
 }

@@ -42,7 +42,6 @@ interface SetupProps {
   onResume: () => void;
   /** 저장 파일을 불러왔을 때 */
   onImport: (saved: SavedAirlineGame) => void;
-  onBack: () => void;
 }
 
 function EraIcon({ era }: { era: StartEra }) {
@@ -187,7 +186,7 @@ const NAME_CHOICES: IconChoice<NameMode>[] = [
   { value: 'fictional', short: '새 항공사 만들기', label: '내가 이름을 지은 새 항공사로 실제 항공사들과 겨뤄요', icon: <NameIcon real={false} /> },
 ];
 
-export function AirlineSetupScreen({ initialSetup, saved, settings, onSettings, onStart, onResume, onImport, onBack }: SetupProps) {
+export function AirlineSetupScreen({ initialSetup, saved, settings, onSettings, onStart, onResume, onImport }: SetupProps) {
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const importFile = (file: File | undefined) => {
     if (!file) return;
@@ -253,9 +252,6 @@ export function AirlineSetupScreen({ initialSetup, saved, settings, onSettings, 
 
   return (
     <div className="setup al-setup">
-      <button type="button" className="btn btn-ghost setup-back" onClick={onBack}>
-        ← 게임 목록
-      </button>
       <header className="al-hero">
         <HeroArt />
         <div>
