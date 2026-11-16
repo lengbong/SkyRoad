@@ -169,6 +169,63 @@ describe('직원: 뽑기·내보내기·임금', () => {
     expect(after.staff.pilot.have + staffPipe(after, 'pilot')).toBeGreaterThanOrEqual(need.pilot + perPlane * 4);
   });
 
+  it('경영 비서는 15% 넘게 남는 직원을 내보내자고 한다 (조금 여유는 남기고)', () => {
+    // 지상직만 28% 남는 큰 회사, 시작하고 한 해가 지났다
+    const s = staffTo(fleet(Array(10).fill(DESTS).flat()), 1.06);
+    s.startT -= 12;
+    const c = s.companies[0];
+    const need = staffNeed(s, c);
+    c.staff.ground.have = Math.round(need.ground * 1.28);
+    const tip = advise(s, 0, 99).find((a) => a.key === 'fire');
+    expect(tip?.title).toBe(`남는 직원 내보내기: 지상직 ${c.staff.ground.have - Math.ceil(need.ground * 1.02)}명`);
+    expect(tip?.gain).toBeGreaterThan(0);
+    const r = applyAdvice(tip!, s);
+    expect(r.why).toBeNull();
+    const after = r.state.companies[0];
+    expect(after.staff.ground.have).toBeGreaterThanOrEqual(need.ground);
+    expect(after.staff.ground.have).toBeLessThanOrEqual(need.ground * 1.15);
+    expect(after.staff.pilot.have).toBe(c.staff.pilot.have);
+    expect(after.cash).toBeLessThan(c.cash);
+    expect(after.shock).toBeGreaterThan(c.shock);
+    // 내보낸 뒤에는 뽑으라고도, 또 내보내라고도 하지 않는다
+    const again = advise(r.state, 0, 99);
+    expect(again.find((a) => a.key === 'hire')).toBeUndefined();
+    expect(again.find((a) => a.key === 'fire')).toBeUndefined();
+  });
+
+  it('경영 비서는 처음 한 해·만족도가 낮을 때·뽑는 중·곧 비행기가 올 때는 내보내자고 하지 않는다', () => {
+    const base = staffTo(fleet(DESTS), 1.3);
+    base.startT -= 12;
+    const fire = (s: AirlineState) => advise(s, 0, 99).find((a) => a.key === 'fire');
+    expect(fire(base)?.title).toContain('조종사');
+    // 처음 한 해: 회사가 막 크는 때
+    const first = structuredClone(base);
+    first.startT += 12;
+    expect(fire(first)).toBeUndefined();
+    // 만족도가 낮으면 더 서운하게 하지 않는다
+    const low = structuredClone(base);
+    low.companies[0].morale = 45;
+    expect(fire(low)).toBeUndefined();
+    // 뽑는 중인 그룹은 내보내지 않는다
+    const pipe = structuredClone(base);
+    for (const g of STAFF_GROUPS) pipe.companies[0].staff[g].pipe = [{ n: 1, ready: pipe.t + 1 }];
+    expect(fire(pipe)).toBeUndefined();
+    // 한 해 안에 올 새 비행기 몫은 남겨 둔다
+    const coming = structuredClone(base);
+    for (let k = 0; k < 5; k++) coming.companies[0].orders.push({ id: coming.nextId++, model: 'a320', due: coming.t + 10, price: 0 });
+    expect(fire(coming)).toBeUndefined();
+  });
+
+  it('경영 비서는 한 번에 전체 직원의 5%까지만 내보내자고 한다', () => {
+    const s = staffTo(fleet(DESTS), 1.6);
+    s.startT -= 12;
+    const total = staffTotal(s.companies[0]);
+    const tip = advise(s, 0, 99).find((a) => a.key === 'fire');
+    const after = applyAdvice(tip!, s).state.companies[0];
+    expect(total - staffTotal(after)).toBeGreaterThan(0);
+    expect(total - staffTotal(after)).toBeLessThanOrEqual(Math.floor(total * 0.05));
+  });
+
   it('내보내면 석 달 치 임금이 들고 남은 사람들이 서운해한다', () => {
     const s = staffTo(fleet(['tokyo']), 1.5);
     const c = s.companies[0];

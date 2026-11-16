@@ -2,7 +2,7 @@ import { MODEL, leadTime } from './aircraft';
 import { classAdvice } from './advisorClasses';
 import { planModelsFor } from './bizmodel';
 import { Planner, bestTimes, suggestRoutes, openSuggestion } from './ai';
-import { ACADEMY_COST, STAFF_GROUPS, STAFF_INFO, hireCost, hireTime, staffCap, staffNeed, staffPipe } from './staff';
+import { ACADEMY_COST, STAFF_GROUPS, STAFF_INFO, fireCost, hireCost, hireTime, salary, staffCap, staffNeed, staffPipe, staffTotal } from './staff';
 import { weather } from './calendar';
 import { CITY, REGIONS, airportClass, dist, pairKey } from './cities';
 import { goalProgress } from './goals';
@@ -33,7 +33,7 @@ import {
 import { monthOf, yearOf } from './time';
 import type { Candidate } from './ai';
 import type { RouteEstimate } from './simulate';
-import type { AirlineState, CharterOffer, Company, Plane, Route } from './types';
+import type { AirlineState, CharterOffer, Company, Plane, Route, StaffGroup } from './types';
 
 /**
  * 경영 비서: 지난달 숫자를 보고 할 만한 일을 3~5개 골라 준다.
@@ -94,6 +94,15 @@ let blocked: string | null = null;
 const note = (why: string) => {
   blocked = why;
 };
+
+/**
+ * 필요한 사람 위에 남겨 둘 여유: 뽑는 동안 노선이 조금 늘어도 버틸 만큼만 (작은 회사는 비행기 한 대 몫까지).
+ * 남는 사람은 임금만 나가니, 인사 화면이 '너무 많다'고 하는 15%는 넘지 않게 12%까지만
+ */
+function staffSpare(g: StaffGroup, need: number, perPlane: number): number {
+  const pct = { pilot: 0.05, cabin: 0.04, tech: 0.03, ground: 0.02 }[g];
+  return Math.min(Math.max(need * pct, perPlane, g === 'pilot' ? 2 : 0), need * 0.12);
+}
 
 function planner(s: AirlineState, ci: number): Planner {
   const pl = new Planner(s, ci, 'ai-normal', () => 0.5);
@@ -566,10 +575,7 @@ export function advise(state: AirlineState, ci: number, max = 5, already: readon
       const supply = st.have + staffPipe(c, g);
       const lead = hireTime(c, g, false);
       const perPlane = c.planes.length > 0 ? need[g] / flyingN : { pilot: 11, cabin: 20, tech: 6, ground: 4 }[g];
-      // 뽑는 동안 노선이 조금 늘어도 버틸 만큼만 남긴다 (작은 회사는 비행기 한 대 몫까지).
-      // 남는 사람은 임금만 나가니, 인사 화면이 '너무 많다'고 하는 15%는 넘지 않게 12%까지만
-      const pct = { pilot: 0.05, cabin: 0.04, tech: 0.03, ground: 0.02 }[g];
-      const reserve = Math.min(Math.max(need[g] * pct, perPlane, g === 'pilot' ? 2 : 0), need[g] * 0.12);
+      const reserve = staffSpare(g, need[g], perPlane);
       // 뽑는 동안 올 새 비행기 몫 (낡은 비행기를 바꾸려는 주문은 비행기 수가 그대로라 일손도 그대로다)
       const dueSoon = c.orders.filter((o) => o.replaces === undefined && o.due <= state.t + lead).length;
       const base = need[g] + perPlane * dueSoon;
@@ -605,6 +611,48 @@ export function advise(state: AirlineState, ci: number, max = 5, already: readon
           return pl.s;
         },
         weight: urgent ? (cap < 1 ? 700 : 420) : 210,
+      });
+    }
+  }
+  // 남는 직원: 인사 화면이 '너무 많다'고 하는 15% 넘게 남은 그룹은 일부 내보내기.
+  // 처음 한 해(회사가 막 클 때)·만족도가 낮을 때·그 그룹을 뽑는 중일 때는 권하지 않는다.
+  // 노선에 아직 안 넣은 비행기와 한 해 안에 올 새 비행기 몫은 남기고, 뽑기 권유가 다시 뜨지 않게 작은 여유도 남긴다
+  if (state.t - state.startT >= 12 && c.morale >= 50) {
+    const laterN = c.planes.filter((p) => p.legs.length === 0).length + c.orders.filter((o) => o.replaces === undefined && o.due <= state.t + 12).length;
+    const total = Math.max(1, staffTotal(c));
+    // 한꺼번에 많이 내보내면 남은 사람들이 크게 서운해하니 모두 합쳐 전체의 5%까지만
+    let room = Math.floor(total * 0.05);
+    const fires: { g: (typeof STAFF_GROUPS)[number]; n: number }[] = [];
+    for (const g of STAFF_GROUPS) {
+      const st = c.staff[g];
+      if (need[g] <= 0 || st.pipe.length > 0) continue;
+      const perPlane = need[g] / flyingN;
+      const keep = need[g] + perPlane * laterN;
+      if (st.have <= keep * 1.15) continue;
+      const n = Math.min(room, Math.floor(st.have - keep - staffSpare(g, need[g], perPlane)));
+      if (n < 3) continue;
+      room -= n;
+      fires.push({ g, n });
+    }
+    const cost = fires.reduce((a, x) => a + fireCost(state, c, x.g, x.n), 0);
+    if (fires.length > 0 && c.cash - cost > reserve) {
+      const save = fires.reduce((a, x) => a + x.n * salary(state, x.g) * c.staff[x.g].pay, 0);
+      // rules.ts 'fire'처럼: 한 번 내보낼 때마다 '서운한 일'이 4 + 내보낸 몫만큼 (40까지)
+      const shock = Math.round(Math.min(40, c.shock + fires.reduce((a, x) => a + 4 + (x.n / total) * 120, 0)) - c.shock);
+      const list = fires.map((x) => `${STAFF_INFO[x.g].name} ${x.n.toLocaleString('ko-KR')}명`).join(' · ');
+      out.push({
+        key: 'fire',
+        icon: '👋',
+        title: `남는 직원 내보내기: ${list}`,
+        detail: `필요보다 15% 넘게 남아서 임금만 나가요${laterN > 0 ? ' (쉬는 비행기·한 해 안에 올 새 비행기 몫은 남겨요)' : ''}. 내보내면 임금이 달 ${fmtFine(save)} 줄어요. 석 달 치 임금 ${withJosa(fmtFine(cost), '이/가')} 들고, 남은 사람들이 서운해해서 만족도를 끌어내리는 '서운한 일'이 −${shock}쯤 생겨요 (몇 달에 걸쳐 풀려요).`,
+        gain: save,
+        label: '내보내기',
+        apply: (s2) => {
+          const pl = planner(s2, ci);
+          for (const x of fires) pl.act({ type: 'fire', group: x.g, n: x.n });
+          return pl.s;
+        },
+        weight: 120 + save,
       });
     }
   }

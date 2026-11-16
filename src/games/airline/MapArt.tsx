@@ -171,6 +171,7 @@ export function adviceIcon(key: string): AnyIcon | null {
     case 'keepspare':
       return f('shield');
     case 'hire':
+    case 'fire':
       return f('people');
     case 'pay':
       return f('coin');
